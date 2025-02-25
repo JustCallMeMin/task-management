@@ -10,7 +10,6 @@ const Attachment = require("./attachment.model");
 const Schedule = require("./schedule.model");
 const Report = require("./report.model");
 const Notification = require("./notification.model");
-const Client = require("./client.model");
 const Role = require("./role.model");
 const Permission = require("./permission.model");
 const UserRole = require("./user_role.model");
@@ -52,10 +51,6 @@ Report.belongsTo(Project, { foreignKey: "projectId" });
 User.hasMany(Notification, { foreignKey: "userId" });
 Notification.belongsTo(User, { foreignKey: "userId" });
 
-// **9. Client có thể liên kết với nhiều Projects**
-Client.hasMany(Project, { foreignKey: "clientId" });
-Project.belongsTo(Client, { foreignKey: "clientId" });
-
 // **10. Many-to-Many: User có nhiều Role**
 User.belongsToMany(Role, { through: UserRole, foreignKey: "userId", otherKey: "roleId", as: "Roles" });
 Role.belongsToMany(User, { through: UserRole, foreignKey: "roleId", otherKey: "userId", as: "Users" });
@@ -82,7 +77,6 @@ const db = {
     Schedule,
     Report,
     Notification,
-    Client,
     Role,
     Permission,
     UserRole,
