@@ -1,0 +1,131 @@
+const Project = require("../models/project.model");
+const User = require("../models/user.model");
+const ProjectUser = require("../models/project_user.model");
+const Task = require("../models/task.model");
+const Role = require("../models/role.model");
+const Permission = require("../models/permission.model");
+class ProjectService {
+    // Tạo Personal Project khi User chưa có dự án cá nhân
+    static async createPersonalProject(userId) {
+        let project = await Project.findOne({ where: { ownerId: userId, isPersonal: true } });
+
+        if (!project) {
+            project = await Project.create({
+                ownerId: userId,
+                name: "Personal Project",
+                isPersonal: true,
+                status: "Chờ",
+            });
+        }
+
+        return project;
+    }
+
+    // Tạo Organization Project
+    static async createOrganizationProject(userId, projectData) {
+        const { name, description, startDate, endDate, members } = projectData;
+
+        // ✅ Kiểm tra User có quyền "Create Project" hay không
+        const user = await User.findByPk(userId, {
+            include: [{ model: Role, as: "Roles", include: [{ model: Permission, as: "Permissions" }] }]
+        });
+
+        if (!user) throw new Error("Người dùng không tồn tại.");
+
+        const userPermissions = user.Roles.flatMap(role => role.Permissions.map(perm => perm.permissionName));
+        if (!userPermissions.includes("Create Project")) {
+            throw new Error("Bạn không có quyền tạo dự án.");
+        }
+
+        // ✅ Kiểm tra dữ liệu hợp lệ
+        if (!name) throw new Error("Tên dự án là bắt buộc.");
+
+        // ✅ Tạo dự án
+        const project = await Project.create({
+            ownerId: userId,
+            name,
+            description,
+            startDate,
+            endDate,
+            isPersonal: false,
+            status: "Chờ",
+        });
+
+        // ✅ Thêm chủ sở hữu vào ProjectUser với vai trò "Owner"
+        await ProjectUser.create({
+            projectId: project.projectId,
+            userId: userId,
+            role: "Owner"
+        });
+
+        // ✅ Thêm thành viên vào dự án (nếu có)
+        if (members && members.length > 0) {
+            for (const memberId of members) {
+                await ProjectUser.create({
+                    projectId: project.projectId,
+                    userId: memberId,
+                    role: "Member"
+                });
+            }
+        }
+
+        return project;
+    }
+
+    // Thêm thành viên vào Organization Project
+    static async addMembers(projectId, members) {
+        const project = await Project.findByPk(projectId);
+        if (!project) throw new Error("Dự án không tồn tại.");
+
+        for (const memberId of members) {
+            const memberExists = await User.findByPk(memberId);
+            if (!memberExists) throw new Error(`Thành viên với ID ${memberId} không tồn tại.`);
+
+            // Thêm member vào dự án
+            await ProjectUser.create({ projectId: project.id, userId: memberId });
+        }
+
+        return { message: "Đã thêm thành viên vào dự án." };
+    }
+
+    // Cập nhật Organization Project (chỉ Manager và Admin)
+    static async updateOrganizationProject(projectId, projectData) {
+        const project = await Project.findByPk(projectId);
+        if (!project) throw new Error("Dự án không tồn tại.");
+
+        const { name, description, startDate, endDate, status } = projectData;
+
+        // Kiểm tra dữ liệu hợp lệ trước khi cập nhật
+        if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
+            throw new Error("Ngày kết thúc phải sau ngày bắt đầu.");
+        }
+
+        // Cập nhật dự án
+        await project.update({
+            name: name || project.name,
+            description: description || project.description,
+            startDate: startDate || project.startDate,
+            endDate: endDate || project.endDate,
+            status: status || project.status,
+        });
+
+        return project;
+    }
+
+    // Xóa Project (chỉ Admin và chỉ khi không có Task đang thực hiện)
+    static async deleteProject(projectId) {
+        const project = await Project.findByPk(projectId);
+        if (!project) throw new Error("Dự án không tồn tại.");
+
+        // Kiểm tra nếu còn Task chưa hoàn thành trong dự án
+        const tasks = await Task.findAll({ where: { projectId, status: "Chờ" } });
+        if (tasks.length > 0) {
+            throw new Error("Không thể xóa dự án khi còn Task đang thực hiện.");
+        }
+
+        await project.destroy();
+        return { message: "Dự án đã được xóa thành công." };
+    }
+}
+
+module.exports = ProjectService;
