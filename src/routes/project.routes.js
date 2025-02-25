@@ -28,7 +28,7 @@ router.delete(
     "/:projectId",
     authenticate,
     authorize(["Delete Project"]),
-    ProjectController.deleteProject
+    ProjectController.deleteProjects
 );
 
 // 🔹 Lấy danh sách Project của User (bao gồm Personal & Organization Project)
@@ -46,11 +46,11 @@ router.post(
 );
 
 // 🔹 Xóa thành viên khỏi Organization Project (chỉ Manager & Admin)
-// router.delete(
-//     "/:projectId/members/:userId",
-//     authenticate,
-//     authorize(["Manage Project Members"]),
-//     ProjectController.removeMember
-// );
+router.delete(
+    "/:projectId/members",
+    authenticate,
+    authorize(["Manage Project Members"]),
+    ProjectController.removeMembers
+);
 
 module.exports = router;

@@ -1,5 +1,5 @@
 const ProjectService = require("../services/project.service");
-const { successResponse, errorResponse, formatProjectsResponse } = require("../utils/response");
+const { successResponse, errorResponse, formatProjectsResponse, formatProjectResponse} = require("../utils/response");
 
 class ProjectController {
     static async createOrganizationProject(req, res) {
@@ -16,9 +16,25 @@ class ProjectController {
             const { projectId } = req.params;
             const { members } = req.body;
             const result = await ProjectService.addMembers(projectId, members);
-            res.status(200).json(result);
+            return successResponse(res, result, "Thành viên đã được thêm vào dự án.");
         } catch (error) {
-            res.status(400).json({ error: error.message });
+            return errorResponse(res, error);
+        }
+    }
+
+    static async removeMembers(req, res) {
+        try {
+            const { projectId } = req.params;
+            const { userIds } = req.body; // Nhận danh sách userIds từ body
+
+            if (!Array.isArray(userIds) || userIds.length === 0) {
+                return errorResponse(res, "Danh sách userIds không hợp lệ.");
+            }
+
+            const result = await ProjectService.removeMembers(projectId, userIds);
+            return successResponse(res, result, "Thành viên đã được xóa khỏi dự án.");
+        } catch (error) {
+            return errorResponse(res, error);
         }
     }
 
@@ -32,13 +48,18 @@ class ProjectController {
         }
     }
 
-    static async deleteProject(req, res) {
+    static async deleteProjects(req, res) {
         try {
-            const { projectId } = req.params;
-            const result = await ProjectService.deleteProject(projectId);
-            res.status(200).json(result);
+            const { projectIds } = req.body; // Lấy danh sách projectIds từ body
+
+            if (!Array.isArray(projectIds) || projectIds.length === 0) {
+                return errorResponse(res, "Danh sách projectIds không hợp lệ.");
+            }
+
+            const result = await ProjectService.deleteProjects(projectIds);
+            return successResponse(res, result, "Dự án đã được xóa thành công.");
         } catch (error) {
-            res.status(400).json({ error: error.message });
+            return errorResponse(res, error);
         }
     }
 
@@ -55,9 +76,13 @@ class ProjectController {
         try {
             const { projectId } = req.params;
             const project = await ProjectService.getProjectById(projectId);
-            res.status(200).json(project);
+            if (!project) {
+                return errorResponse(res, "Dự án không tồn tại.", 404);
+            }
+            return successResponse(res, formatProjectResponse(project), "Lấy thông tin dự án thành công.");
         } catch (error) {
-            res.status(400).json({ error: error.message });
+            console.error("Lỗi trong getProjectById:", error);
+            return errorResponse(res, "Lỗi máy chủ.", 500);
         }
     }
 }

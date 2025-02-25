@@ -18,26 +18,6 @@ module.exports = {
         email: user.email,
         roles: user.roles
     }),
-    formatProjectsResponse: (projects) => {
-        return projects.map(project => ({
-            projectId: project.projectId,
-            name: project.name,
-            description: project.description,
-            owner: {
-                userId: project.ownerId,
-                fullName: project.Owner ? project.Owner.fullName : "Không xác định",
-                email: project.Owner ? project.Owner.email : "Không xác định"
-            },
-            isPersonal: project.isPersonal,
-            status: project.status,
-            members: project.Members ? project.Members.map(member => ({
-                userId: member.userId,
-                fullName: member.User ? member.User.fullName : "Không xác định",
-                email: member.User ? member.User.email : "Không xác định",
-                role: member.role
-            })) : []
-        }));
-    },
     formatAuthResponse: (user, token) => ({
         userId: user.userId,
         fullName: user.fullName,
@@ -61,5 +41,43 @@ module.exports = {
         projectId: task.projectId,
         createdAt: task.createdAt,
         updatedAt: task.updatedAt
+    }),
+    formatProjectsResponse: (projects) => {
+        return projects.map(project => ({
+            projectId: project.projectId,
+            name: project.name,
+            description: project.description,
+            owner: {
+                userId: project.Owner ? project.Owner.userId : null,
+                fullName: project.Owner ? project.Owner.fullName : "Không xác định",
+                email: project.Owner ? project.Owner.email : "Không xác định"
+            },
+            isPersonal: project.isPersonal,
+            status: project.status,
+            members: project.Members ? project.Members.map(member => ({
+                userId: member.User ? member.User.userId : null,
+                fullName: member.User ? member.User.fullName : "Không xác định",
+                email: member.User ? member.User.email : "Không xác định",
+                role: member.role
+            })) : []
+        }));
+    },
+    formatProjectResponse: (project) => ({
+        projectId: project.projectId,
+        name: project.name,
+        description: project.description,
+        owner: {
+            userId: project.Owner ? project.Owner.userId : null,
+            fullName: project.Owner ? project.Owner.fullName : "Không xác định",
+            email: project.Owner ? project.Owner.email : "Không xác định"
+        },
+        isPersonal: project.isPersonal,
+        status: project.status,
+        members: project.Members ? project.Members.map(member => ({
+            userId: member.User ? member.User.userId : null,
+            fullName: member.User ? member.User.fullName : "Không xác định",
+            email: member.User ? member.User.email : "Không xác định",
+            role: member.role
+        })) : []
     })
 };

@@ -82,11 +82,40 @@ class ProjectService {
             const memberExists = await User.findByPk(memberId);
             if (!memberExists) throw new Error(`Thành viên với ID ${memberId} không tồn tại.`);
 
-            // Thêm member vào dự án
-            await ProjectUser.create({ projectId: project.id, userId: memberId });
+            // Kiểm tra nếu thành viên đã có trong dự án
+            const existingMember = await ProjectUser.findOne({ where: { projectId, userId: memberId } });
+            if (existingMember) continue; // Bỏ qua nếu đã tồn tại
+
+            await ProjectUser.create({ projectId, userId: memberId, role: "Member" });
         }
 
         return { message: "Đã thêm thành viên vào dự án." };
+    }
+
+    // Xóa thành viên khỏi Organization Project
+    static async removeMembers(projectId, userIds) {
+        const project = await Project.findByPk(projectId);
+        if (!project) throw new Error("Dự án không tồn tại.");
+
+        // Tìm tất cả thành viên có trong danh sách userIds
+        const members = await ProjectUser.findAll({
+            where: { projectId, userId: userIds }
+        });
+
+        if (members.length === 0) {
+            throw new Error("Không tìm thấy thành viên nào để xóa.");
+        }
+
+        // Kiểm tra nếu danh sách chứa Owner (không thể xóa Owner)
+        const owners = members.filter(member => member.role === "Owner");
+        if (owners.length > 0) {
+            throw new Error("Không thể xóa chủ sở hữu dự án.");
+        }
+
+        // Xóa tất cả thành viên hợp lệ
+        await ProjectUser.destroy({ where: { projectId, userId: userIds } });
+
+        return { message: `Đã xóa ${members.length} thành viên khỏi dự án.` };
     }
 
     // Lấy danh sách tất cả các dự án mà User tham gia (bao gồm Personal & Organization Project)
@@ -148,19 +177,56 @@ class ProjectService {
     }
 
     // Xóa Project (chỉ Admin và chỉ khi không có Task đang thực hiện)
-    static async deleteProject(projectId) {
-        const project = await Project.findByPk(projectId);
-        if (!project) throw new Error("Dự án không tồn tại.");
+    static async deleteProjects(projectIds) {
+        const projects = await Project.findAll({
+            where: { projectId: projectIds }
+        });
 
-        // Kiểm tra nếu còn Task chưa hoàn thành trong dự án
-        const tasks = await Task.findAll({ where: { projectId, status: "Chờ" } });
-        if (tasks.length > 0) {
-            throw new Error("Không thể xóa dự án khi còn Task đang thực hiện.");
+        if (projects.length === 0) {
+            throw new Error("Không tìm thấy dự án nào để xóa.");
         }
 
-        await project.destroy();
-        return { message: "Dự án đã được xóa thành công." };
+        // Kiểm tra nếu còn Task chưa hoàn thành trong các dự án
+        const tasks = await Task.findAll({
+            where: {
+                projectId: projectIds,
+                status: "Chờ"
+            }
+        });
+
+        if (tasks.length > 0) {
+            throw new Error("Không thể xóa các dự án khi còn Task đang thực hiện.");
+        }
+
+        // Xóa tất cả dự án hợp lệ
+        await Project.destroy({ where: { projectId: projectIds } });
+
+        return { message: `Đã xóa ${projects.length} dự án khỏi hệ thống.` };
     }
+
+    static async getProjectById(projectId) {
+        return await Project.findByPk(projectId, {
+            include: [
+                {
+                    model: User,
+                    as: "Owner",
+                    attributes: ["userId", "fullName", "email"]
+                },
+                {
+                    model: ProjectUser,
+                    as: "Members",
+                    include: [
+                        {
+                            model: User,
+                            as: "User",
+                            attributes: ["userId", "fullName", "email"]
+                        }
+                    ]
+                }
+            ]
+        });
+    }
+
 }
 
 module.exports = ProjectService;

@@ -5,6 +5,7 @@ const db = require("../src/models");
         // 🔹 Gán quyền cho Admin
         { roleId: 1, permissionId: 4 }, // Create Project
         { roleId: 1, permissionId: 5 }, // Edit Project
+        { roleId: 1, permissionId: 6 }, // Delete Project
         { roleId: 1, permissionId: 7 }, // Manage Project Members
         { roleId: 1, permissionId: 9 }, // Create Project Task
         { roleId: 1, permissionId: 10 }, // Assign Task
@@ -13,6 +14,7 @@ const db = require("../src/models");
         // 🔹 Gán quyền cho Manager
         { roleId: 2, permissionId: 4 }, // Create Project
         { roleId: 2, permissionId: 5 }, // Edit Project
+        { roleId: 1, permissionId: 6 }, // Delete Project
         { roleId: 2, permissionId: 7 }, // Manage Project Members
         { roleId: 2, permissionId: 9 }, // Create Project Task
         { roleId: 2, permissionId: 10 }, // Assign Task
