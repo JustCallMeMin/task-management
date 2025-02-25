@@ -1,4 +1,5 @@
 const ProjectService = require("../services/project.service");
+const { successResponse, errorResponse, formatProjectsResponse } = require("../utils/response");
 
 class ProjectController {
     static async createOrganizationProject(req, res) {
@@ -44,9 +45,9 @@ class ProjectController {
     static async getAllProjects(req, res) {
         try {
             const projects = await ProjectService.getAllProjects(req.user.id);
-            res.status(200).json(projects);
+            return successResponse(res, formatProjectsResponse(projects), "Danh sách dự án của bạn");
         } catch (error) {
-            res.status(400).json({ error: error.message });
+            return errorResponse(res, error);
         }
     }
 

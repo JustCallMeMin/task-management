@@ -4,6 +4,7 @@ const ProjectUser = require("../models/project_user.model");
 const Task = require("../models/task.model");
 const Role = require("../models/role.model");
 const Permission = require("../models/permission.model");
+const { Op } = require("sequelize");
 class ProjectService {
     // Tạo Personal Project khi User chưa có dự án cá nhân
     static async createPersonalProject(userId) {
@@ -88,6 +89,40 @@ class ProjectService {
         return { message: "Đã thêm thành viên vào dự án." };
     }
 
+    // Lấy danh sách tất cả các dự án mà User tham gia (bao gồm Personal & Organization Project)
+    static async getAllProjects(userId) {
+        // Kiểm tra User có tồn tại không
+        const user = await User.findByPk(userId);
+        if (!user) throw new Error("Người dùng không tồn tại.");
+
+        // Lấy danh sách tất cả các dự án mà User là thành viên hoặc chủ sở hữu
+        return await Project.findAll({
+            include: [
+                {
+                    model: ProjectUser,
+                    as: "Members",
+                    include: [
+                        {
+                            model: User,
+                            as: "User", // Lấy thông tin User từ ProjectUser
+                            attributes: ["userId", "fullName", "email"]
+                        }
+                    ]
+                },
+                {
+                    model: User,
+                    as: "Owner",
+                    attributes: ["userId", "fullName", "email"]
+                }
+            ],
+            where: {
+                [Op.or]: [
+                    { ownerId: userId }, // Chủ sở hữu
+                    { '$Members.userId$': userId } // Thành viên
+                ]
+            }
+        });
+    }
     // Cập nhật Organization Project (chỉ Manager và Admin)
     static async updateOrganizationProject(projectId, projectData) {
         const project = await Project.findByPk(projectId);

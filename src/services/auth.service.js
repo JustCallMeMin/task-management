@@ -1,6 +1,6 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const { Op } = require("sequelize");
+const {Op} = require("sequelize");
 const User = require("../models/user.model");
 const Role = require("../models/role.model");
 const UserRole = require("../models/user_role.model");
@@ -13,17 +13,17 @@ class AuthService {
         if (!userData?.email || !userData?.password || !userData?.fullName) {
             throw new Error("Họ tên, email và mật khẩu là bắt buộc.");
         }
-        const { fullName, email, phone, password } = userData;
-        const existingUser = await User.findOne({ where: { email } });
+        const {fullName, email, phone, password} = userData;
+        const existingUser = await User.findOne({where: {email}});
         if (existingUser) throw new Error("Email đã được sử dụng.");
 
         const hashedPassword = await bcrypt.hash(password, 10);
-        const user = await User.create({ fullName, email, phone, password: hashedPassword });
+        const user = await User.create({fullName, email, phone, password: hashedPassword});
 
         // Gán quyền mặc định là "User"
-        const defaultRole = await Role.findOne({ where: { roleName: "User" } });
+        const defaultRole = await Role.findOne({where: {roleName: "User"}});
         if (defaultRole) {
-            await UserRole.create({ userId: user.userId, roleId: defaultRole.roleId });
+            await UserRole.create({userId: user.userId, roleId: defaultRole.roleId});
         }
 
         return user;
@@ -34,8 +34,8 @@ class AuthService {
             throw new Error("Email và mật khẩu là bắt buộc.");
         }
         const user = await User.findOne({
-            where: { email },
-            include: [{ model: Role, as: "Roles", through: { attributes: [] } }]
+            where: {email},
+            include: [{model: Role, as: "Roles", through: {attributes: []}}]
         });
         if (!user) throw new Error("Tài khoản không tồn tại.");
 
@@ -45,30 +45,30 @@ class AuthService {
         const roles = user.Roles.map(role => role.roleName);
 
         const token = jwt.sign(
-            { userId: user.userId, roles },
+            {userId: user.userId, roles, userName: user.fullName},
             process.env.JWT_SECRET,
-            { expiresIn: "1h" }
+            {expiresIn: "1h"}
         );
 
         const refreshToken = jwt.sign(
-            { userId: user.userId, roles },
+            {userId: user.userId, roles, userName: user.fullName},
             process.env.JWT_SECRET,
-            { expiresIn: "7d" }
+            {expiresIn: "7d"}
         );
 
-        return { token, refreshToken, user };
+        return {token, refreshToken, user};
     }
 
     static async validateToken(token) {
         try {
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
             const foundUser = await User.findByPk(decoded.userId, {
-                include: [{ model: Role, as: "Roles", through: { attributes: [] } }]
+                include: [{model: Role, as: "Roles", through: {attributes: []}}]
             });
             if (!foundUser) throw new Error("Người dùng không tồn tại hoặc đã bị xóa.");
 
             const roles = foundUser.Roles.map(role => role.roleName);
-            return { userId: foundUser.userId, roles, token, message: "Token hợp lệ." };
+            return {userId: foundUser.userId, roles, token, message: "Token hợp lệ."};
         } catch (error) {
             throw new Error("Token không hợp lệ hoặc đã hết hạn.");
         }
@@ -76,7 +76,7 @@ class AuthService {
 
     static async forgotPassword(email) {
         if (!email) throw new Error("Email là bắt buộc.");
-        const user = await User.findOne({ where: { email } });
+        const user = await User.findOne({where: {email}});
         if (!user) throw new Error("Email không tồn tại.");
 
         function generateResetCode() {
@@ -84,7 +84,7 @@ class AuthService {
         }
 
         const resetToken = generateResetCode();
-        await user.update({ resetToken, resetTokenExpiry: new Date(Date.now() + 3600000) });
+        await user.update({resetToken, resetTokenExpiry: new Date(Date.now() + 3600000)});
 
         await transporter.sendMail({
             to: user.email,
@@ -97,7 +97,7 @@ class AuthService {
         if (!resetCode || !newPassword) throw new Error("Mã xác thực và mật khẩu mới là bắt buộc.");
 
         const user = await User.findOne({
-            where: { resetToken: resetCode, resetTokenExpiry: { [Op.gt]: new Date() } }
+            where: {resetToken: resetCode, resetTokenExpiry: {[Op.gt]: new Date()}}
         });
 
         if (!user) throw new Error("Mã xác thực không hợp lệ hoặc đã hết hạn.");
@@ -109,7 +109,30 @@ class AuthService {
     }
 
     static async logout(user) {
-        return { message: "Đăng xuất thành công." };
+        return {message: "Đăng xuất thành công."};
+    }
+
+    static async getUserDetails(userId) {
+        const user = await User.findByPk(userId, {
+            attributes: ["userId", "fullName", "email"],
+            include: [
+                {
+                    model: Role,
+                    as: "Roles",
+                    attributes: ["roleName"],
+                    through: { attributes: [] }
+                }
+            ]
+        });
+
+        if (!user) return null;
+
+        return {
+            userId: user.userId,
+            fullName: user.fullName,
+            email: user.email,
+            roles: user.Roles.map(role => role.roleName)
+        };
     }
 }
 

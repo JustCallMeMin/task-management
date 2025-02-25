@@ -1,5 +1,6 @@
 const express = require("express");
 const ProjectController = require("../controllers/project.controller");
+const ProjectService = require("../services/project.service");
 const { authenticate, authorize } = require("../middlewares/auth.middleware");
 
 const router = express.Router();

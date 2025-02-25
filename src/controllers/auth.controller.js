@@ -1,22 +1,23 @@
 // src/controllers/auth.controller.js
 const AuthService = require("../services/auth.service");
-
+const { successResponse, errorResponse, formatAuthResponse } = require("../utils/response");
 class AuthController {
     static async getMe(req, res) {
         try {
-            console.log("📌 Dữ liệu nhận trong /me:", req.user); // ✅ Kiểm tra log
             if (!req.user) {
-                return res.status(401).json({ error: "Không tìm thấy thông tin người dùng." });
+                return errorResponse(res, "Không tìm thấy thông tin người dùng.", 401);
             }
 
-            res.status(200).json({
-                userId: req.user.id,
-                roles: req.user.roles,
-                message: "Lấy thông tin người dùng thành công."
-            });
+            // Lấy thông tin đầy đủ của user từ DB
+            const user = await AuthService.getUserDetails(req.user.id);
+            if (!user) {
+                return errorResponse(res, "Người dùng không tồn tại.", 404);
+            }
+
+            return successResponse(res, formatAuthResponse(user), "Lấy thông tin người dùng thành công.");
         } catch (error) {
             console.error("❌ Lỗi trong getMe:", error);
-            res.status(500).json({ error: "Lỗi máy chủ." });
+            return errorResponse(res, "Lỗi máy chủ.", 500);
         }
     }
 
@@ -53,7 +54,6 @@ class AuthController {
     }
 
     static async register(req, res) {
-        console.log("📌 Hàm register() đã được gọi!");
         try {
             console.log("Header nhận được:", req.headers); // ✅ Kiểm tra headers
             console.log("Body nhận được tại controller:", req.body); // ✅ Kiểm tra dữ liệu
