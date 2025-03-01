@@ -15,9 +15,9 @@ Trước khi chạy dự án, bạn cần thiết lập MySQL:
 Sau khi kết nối database thành công, chạy các seeder để khởi tạo dữ liệu:
 
 ```sh
-node seeders/role
-node seeders/permission
-node seeders/rolePermission
+node seeders/seedRoles
+node seeders/seedPermissions
+node seeders/seedRolePermission
 ```
 
 ## **3. Chạy Dự Án**
