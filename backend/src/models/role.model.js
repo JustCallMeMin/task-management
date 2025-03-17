@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-const { ROLE } = require("../constants/enums");
+const { ROLE } = require("../utils/enums");
 
 const roleSchema = new mongoose.Schema(
 	{

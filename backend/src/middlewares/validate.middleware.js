@@ -3,7 +3,7 @@ const {
 	TASK_PRIORITY,
 	TASK_STATUS,
 	PROJECT_STATUS,
-} = require("../constants/enums");
+} = require("../utils/enums");
 
 // Middleware kiểm tra lỗi validation
 const validateRequest = (req, res, next) => {

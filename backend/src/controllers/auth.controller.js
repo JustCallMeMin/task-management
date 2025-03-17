@@ -250,11 +250,21 @@ class AuthController {
 
 	static async resetPassword(req, res) {
 		try {
-			const { email, otp, newPassword } = req.body;
-			const result = await AuthService.resetPassword(otp, newPassword);
-			res.json(result);
+			const { otp, resetCode, newPassword } = req.body;
+
+			// Validate dữ liệu đầu vào
+			const otpCode = otp || resetCode;
+			if (!otpCode) {
+				return errorResponse(res, "Mã OTP là bắt buộc", 400);
+			}
+			if (!newPassword) {
+				return errorResponse(res, "Mật khẩu mới là bắt buộc", 400);
+			}
+
+			const result = await AuthService.resetPassword(otpCode, newPassword);
+			return successResponse(res, null, result.message);
 		} catch (error) {
-			res.status(400).json({ message: error.message });
+			return errorResponse(res, error.message, 400);
 		}
 	}
 

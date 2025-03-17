@@ -10,7 +10,7 @@ const SecurityService = require("./security.service");
 const transporter = require("../../config/mail");
 const UserDTO = require("../dto/user.dto");
 const TwoFactorService = require("./two_factor.service");
-const { ROLE } = require("../../constants/enums");
+const { ROLE } = require("../../utils/enums");
 const EmailService = require("../../services/email.service");
 const TokenService = require("../../services/token.service");
 require("dotenv").config();
@@ -626,11 +626,10 @@ class AuthService {
 		}
 
 		// Cập nhật mật khẩu và xóa token
-		await UserRepository.update(user._id, {
-			password: newPassword,
-			resetToken: null,
-			resetTokenExpiry: null,
-		});
+		user.password = newPassword; // Mongoose sẽ tự động hash thông qua middleware
+		user.resetToken = null;
+		user.resetTokenExpiry = null;
+		await user.save();
 
 		return { message: "Đặt lại mật khẩu thành công" };
 	}

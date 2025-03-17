@@ -36,8 +36,8 @@ class AuthService extends BaseApiService {
 		return this.post("/forgot-password", { email });
 	}
 
-	async resetPassword(resetCode, newPassword) {
-		return this.post("/reset-password", { resetCode, newPassword });
+	async resetPassword(otp, newPassword) {
+		return this.post("/reset-password", { otp, newPassword });
 	}
 
 	getCurrentUser() {

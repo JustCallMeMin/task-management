@@ -1,4 +1,4 @@
-const { ROLE } = require("../constants/enums");
+const { ROLE } = require("../utils/enums");
 const mongoose = require("mongoose");
 const Role = require("../models/role.model");
 const User = require("../models/user.model");

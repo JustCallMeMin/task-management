@@ -66,7 +66,7 @@ const ResetPassword = () => {
 		setLoading(true);
 
 		try {
-			await resetPassword(email, formData.otp, formData.newPassword);
+			await resetPassword(formData.otp, formData.newPassword);
 			setSuccess(true);
 			setTimeout(() => {
 				navigate("/login");
