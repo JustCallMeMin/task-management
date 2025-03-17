@@ -90,6 +90,7 @@ passport.use(
 			clientID: process.env.GITHUB_CLIENT_ID,
 			clientSecret: process.env.GITHUB_CLIENT_SECRET,
 			callbackURL: `${process.env.API_URL || 'http://localhost:5001'}/api/auth/github/callback`,
+			scope: ['user:email'],
 			proxy: true,
 		},
 		async (accessToken, refreshToken, profile, done) => {
@@ -101,22 +102,29 @@ passport.use(
 					photos: profile.photos ? profile.photos.map(p => p.value) : []
 				});
 
+				if (!profile.emails || profile.emails.length === 0) {
+					logger.error("No email returned from GitHub", { profileId: profile.id });
+					return done(new Error("GitHub không cung cấp email. Vui lòng đảm bảo email của bạn là public trên GitHub hoặc đăng nhập bằng phương thức khác."), null);
+				}
+
+				const userEmail = profile.emails[0].value;
+				
 				// Kiểm tra xem user đã tồn tại chưa
-				let user = await UserRepository.findByEmail(profile.emails[0].value);
+				let user = await UserRepository.findByEmail(userEmail);
 				logger.debug("User lookup by email", { 
-					email: profile.emails[0].value,
+					email: userEmail,
 					found: !!user 
 				});
 
 				if (!user) {
 					// Tạo user mới nếu chưa tồn tại
 					logger.info("Creating new user with GitHub OAuth", { 
-						email: profile.emails[0].value 
+						email: userEmail 
 					});
 					user = await AuthService.registerWithOAuth({
-						email: profile.emails[0].value,
+						email: userEmail,
 						fullName: profile.displayName,
-						avatar: profile.photos[0].value,
+						avatar: profile.photos ? profile.photos[0].value : null,
 						provider: "github",
 						providerId: profile.id,
 					});
@@ -133,7 +141,7 @@ passport.use(
 					user = await AuthService.updateOAuthProvider(user, {
 						provider: "github",
 						providerId: profile.id,
-						avatar: profile.photos[0].value
+						avatar: profile.photos ? profile.photos[0].value : user.avatar
 					});
 					logger.success("User updated with GitHub OAuth", { 
 						userId: user._id 

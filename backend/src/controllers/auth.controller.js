@@ -364,6 +364,12 @@ class AuthController {
 		passport.authenticate("github", async (err, user, info) => {
 			if (err) {
 				logger.error("GitHub OAuth authentication error", err);
+				// Nếu lỗi là không tìm thấy email, chuyển hướng với thông báo cụ thể
+				if (err.message && err.message.includes("GitHub không cung cấp email")) {
+					const redirectUrl = `${process.env.CLIENT_URL || 'http://localhost:3000'}/login?message=${encodeURIComponent("GitHub không cung cấp email. Vui lòng đảm bảo email của bạn là public trên GitHub hoặc đăng nhập bằng phương thức khác.")}`;
+					logger.info("Redirecting to login page due to missing email", { redirectUrl });
+					return res.redirect(redirectUrl);
+				}
 				return errorResponse(res, "Lỗi xác thực GitHub: " + err.message, 401);
 			}
 
