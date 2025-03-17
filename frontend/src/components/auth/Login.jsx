@@ -11,9 +11,11 @@ import {
 	Paper,
 	InputAdornment,
 	IconButton,
+	CircularProgress,
 } from "@mui/material";
 import { Visibility, VisibilityOff, Email, Lock } from "@mui/icons-material";
 import { fadeIn, scaleIn } from "../../styles/animations";
+import OAuthButtons from "./OAuthButtons";
 
 const Login = () => {
 	const [formData, setFormData] = useState({
@@ -273,8 +275,11 @@ const Login = () => {
 								textTransform: "none",
 								fontSize: "1rem",
 							}}>
-							{loading ? "Đang đăng nhập..." : "Đăng nhập"}
+							{loading ? <CircularProgress size={24} /> : "Đăng nhập"}
 						</Button>
+
+						<OAuthButtons />
+
 						<Box
 							sx={{
 								textAlign: "center",

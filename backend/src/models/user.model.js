@@ -15,12 +15,18 @@ const userSchema = new mongoose.Schema(
 		},
 		phone: {
 			type: String,
-			required: true,
+			required: function() {
+				// Phone không bắt buộc nếu đăng ký qua OAuth
+				return !this.oauthProviders || Object.keys(this.oauthProviders).length === 0;
+			},
 			match: /^(\+?\d{1,3})?\d{9,11}$/, // Hỗ trợ số có mã quốc gia
 		},
 		password: {
 			type: String,
-			required: true,
+			required: function() {
+				// Password không bắt buộc nếu đăng ký qua OAuth
+				return !this.oauthProviders || Object.keys(this.oauthProviders).length === 0;
+			},
 			minlength: 6,
 			maxlength: 255,
 		},
@@ -62,6 +68,12 @@ const userSchema = new mongoose.Schema(
 		refreshToken: {
 			type: String,
 			default: null,
+		},
+		// OAuth providers
+		oauthProviders: {
+			type: Map,
+			of: String,
+			default: {},
 		},
 		// 2FA fields
 		twoFactorEnabled: {
@@ -133,6 +145,8 @@ userSchema.pre("save", async function (next) {
 
 // Method so sánh password
 userSchema.methods.comparePassword = async function (candidatePassword) {
+	// Nếu người dùng không có mật khẩu (đăng nhập qua OAuth), luôn trả về false
+	if (!this.password) return false;
 	return await bcrypt.compare(candidatePassword, this.password);
 };
 

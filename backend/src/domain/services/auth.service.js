@@ -269,63 +269,58 @@ class AuthService {
 		twoFactorToken = null
 	) {
 		try {
-			console.log("Login attempt:", { email, deviceInfo, ipAddress });
-
-			// Kiểm tra email và password
-			if (!email || !password) {
-				console.log("Missing email or password");
-				throw new Error("Email và mật khẩu là bắt buộc");
-			}
+			console.log("Login attempt:", { email });
 
 			// Tìm user theo email
 			const user = await UserRepository.findByEmail(email);
-			console.log("Found user:", {
-				id: user?._id,
-				email: user?.email,
-				isVerified: user?.isVerified,
-				hasPassword: !!user?.password,
-				storedHash: user?.password,
-			});
-
 			if (!user) {
-				console.log("User not found");
-				throw new Error("Email hoặc mật khẩu không chính xác");
+				throw new Error("Email hoặc mật khẩu không đúng.");
 			}
 
-			// Kiểm tra trạng thái tài khoản
-			if (!user.isVerified) {
-				console.log("User not verified");
-				throw new Error("Tài khoản chưa được kích hoạt");
+			// Kiểm tra nếu tài khoản bị khóa
+			if (user.isBlocked) {
+				throw new Error("Tài khoản của bạn đã bị khóa.");
 			}
 
-			// Kiểm tra mật khẩu
-			console.log("Comparing passwords...");
-			console.log("Password details:", {
-				inputPassword: password,
-				storedHash: user.password,
-				passwordLength: password.length,
-				hashLength: user.password.length,
-				isPasswordString: typeof password === "string",
-				isHashString: typeof user.password === "string",
-				passwordFirstChar: password.charAt(0),
-				hashFirstChar: user.password.charAt(0),
-			});
+			// Kiểm tra xác thực mật khẩu nếu không phải đăng nhập OAuth
+			if (password !== null) {
+				const isPasswordValid = await user.comparePassword(password);
+				if (!isPasswordValid) {
+					// Kiểm tra xem tài khoản có được tạo qua OAuth không
+					if (user.oauthProviders && Object.keys(user.oauthProviders).length > 0) {
+						// Nếu tài khoản được tạo qua OAuth, thông báo cho người dùng
+						const providers = Object.keys(user.oauthProviders).map(p => 
+							p.charAt(0).toUpperCase() + p.slice(1)
+						).join(' hoặc ');
+						throw new Error(`Tài khoản này được đăng ký qua ${providers}. Vui lòng sử dụng phương thức đăng nhập tương ứng.`);
+					}
+					
+					// Tăng số lần đăng nhập thất bại
+					user.loginAttempts = (user.loginAttempts || 0) + 1;
 
-			try {
-				const isValidPassword = await bcrypt.compare(password, user.password);
-				console.log("Password validation result:", {
-					isValid: isValidPassword,
-					bcryptVersion: bcrypt.getRounds(user.password),
-					bcryptError: null,
-				});
+					// Khóa tài khoản tạm thời nếu đăng nhập thất bại quá nhiều lần
+					if (user.loginAttempts >= 5) {
+						user.lockUntil = new Date(Date.now() + 30 * 60 * 1000); // Khóa 30 phút
+					}
 
-				if (!isValidPassword) {
-					console.log("Invalid password");
-					throw new Error("Email hoặc mật khẩu không chính xác");
+					await user.save();
+					throw new Error("Email hoặc mật khẩu không đúng.");
 				}
-			} catch (error) {
-				console.error("Password comparison error:", error);
-				throw new Error("Lỗi xác thực mật khẩu");
+				
+				// Kiểm tra đăng nhập bất thường - chỉ áp dụng cho đăng nhập bằng mật khẩu
+				const securityCheck = await SecurityService.checkLoginAttempt(
+					user._id,
+					ipAddress,
+					deviceInfo
+				);
+				if (securityCheck.isSuspicious) {
+					throw new Error("Yêu cầu xác thực bổ sung");
+				}
+			}
+
+			// Kiểm tra xác thực email
+			if (!user.isVerified) {
+				throw new Error("Tài khoản chưa được xác thực email.");
 			}
 
 			// Kiểm tra 2FA nếu đã bật
@@ -342,16 +337,6 @@ class AuthService {
 				if (!isValid2FA) {
 					throw new Error("Mã xác thực 2FA không hợp lệ");
 				}
-			}
-
-			// Kiểm tra đăng nhập bất thường
-			const securityCheck = await SecurityService.checkLoginAttempt(
-				user._id,
-				ipAddress,
-				deviceInfo
-			);
-			if (securityCheck.isSuspicious) {
-				throw new Error("Yêu cầu xác thực bổ sung");
 			}
 
 			// Lấy roles và permissions
@@ -653,11 +638,11 @@ class AuthService {
 			const existingUser = await UserRepository.findByEmail(email);
 			if (existingUser) {
 				// Nếu user đã tồn tại, cập nhật thông tin OAuth
-				existingUser.oauthProviders = existingUser.oauthProviders || {};
-				existingUser.oauthProviders[provider] = providerId;
-				if (avatar) existingUser.avatar = avatar;
-				await existingUser.save();
-				return existingUser;
+				return this.updateOAuthProvider(existingUser, {
+					provider,
+					providerId,
+					avatar
+				});
 			}
 
 			// Tạo user mới
@@ -666,9 +651,11 @@ class AuthService {
 				fullName,
 				avatar,
 				isVerified: true, // OAuth users are pre-verified
+				verifiedAt: new Date(),
 				oauthProviders: {
 					[provider]: providerId,
 				},
+				// Không cần password và phone vì đã cập nhật model để không bắt buộc khi có oauthProviders
 			});
 
 			// Gán role mặc định
@@ -683,6 +670,38 @@ class AuthService {
 			return user;
 		} catch (error) {
 			throw new Error(`Lỗi đăng ký với ${provider}: ${error.message}`);
+		}
+	}
+
+	/**
+	 * Cập nhật thông tin OAuth cho người dùng đã tồn tại
+	 * @param {Object} user - Đối tượng người dùng
+	 * @param {Object} oauthData - Thông tin OAuth
+	 * @returns {Object} - Người dùng đã cập nhật
+	 */
+	static async updateOAuthProvider(user, { provider, providerId, avatar }) {
+		try {
+			// Khởi tạo oauthProviders nếu chưa có
+			user.oauthProviders = user.oauthProviders || {};
+			
+			// Cập nhật thông tin provider
+			user.oauthProviders[provider] = providerId;
+			
+			// Cập nhật avatar nếu có
+			if (avatar && (!user.avatar || user.avatar.includes('gravatar'))) {
+				user.avatar = avatar;
+			}
+			
+			// Đảm bảo tài khoản đã được xác minh
+			if (!user.isVerified) {
+				user.isVerified = true;
+				user.verifiedAt = new Date();
+			}
+			
+			await user.save();
+			return user;
+		} catch (error) {
+			throw new Error(`Lỗi cập nhật thông tin ${provider}: ${error.message}`);
 		}
 	}
 

@@ -5,6 +5,7 @@ const passport = require("passport");
 const UserRepository = require("../domain/repositories/user.repository");
 const jwt = require("jsonwebtoken");
 const transporter = require("../config/mail");
+const logger = require("../utils/logger");
 
 class AuthController {
 	static async register(req, res) {
@@ -282,76 +283,146 @@ class AuthController {
 		}
 	}
 
-	static async googleAuth(req, res) {
-		passport.authenticate("google", { scope: ["profile", "email"] })(req, res);
+	static googleAuth(req, res, next) {
+		logger.info("Google OAuth authentication initiated");
+		passport.authenticate("google", { scope: ["profile", "email"] })(req, res, next);
 	}
 
-	static async googleCallback(req, res) {
-		passport.authenticate("google", async (err, user) => {
+	static googleCallback(req, res, next) {
+		logger.info("Google OAuth callback received");
+		passport.authenticate("google", async (err, user, info) => {
 			if (err) {
-				return errorResponse(res, "Lỗi xác thực Google", 401);
+				logger.error("Google OAuth authentication error", err);
+				return errorResponse(res, "Lỗi xác thực Google: " + err.message, 401);
 			}
+
+			if (!user) {
+				logger.warn("Google OAuth authentication failed - no user", info);
+				return errorResponse(res, "Xác thực Google thất bại", 401);
+			}
+
+			logger.success("Google OAuth authentication successful", { email: user.email });
 
 			try {
-				const { token, refreshToken } = await AuthService.login(
-					user.email,
-					null,
-					req.headers["user-agent"],
-					req.ip
-				);
+				// Kiểm tra xem user có oauthProviders.google không
+				if (!user.oauthProviders || !user.oauthProviders.google) {
+					logger.info("Updating OAuth provider for user", { userId: user._id });
+					// Cập nhật thông tin OAuth nếu chưa có
+					user = await AuthService.updateOAuthProvider(user, {
+						provider: "google",
+						providerId: user.id, // Hoặc lấy từ profile nếu có
+						avatar: user.avatar
+					});
+				}
 
-				res.cookie("refreshToken", refreshToken, {
-					httpOnly: true,
-					secure: process.env.NODE_ENV === "production",
-					sameSite: "strict",
-					maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-				});
+				logger.info("Logging in user with OAuth", { userId: user._id });
+				try {
+					const { token, refreshToken } = await AuthService.login(
+						user.email,
+						null,
+						req.headers["user-agent"],
+						req.ip
+					);
 
-				return successResponse(
-					res,
-					{ token, user: new UserDTO(user) },
-					"Đăng nhập Google thành công"
-				);
+					res.cookie("refreshToken", refreshToken, {
+						httpOnly: true,
+						secure: process.env.NODE_ENV === "production",
+						sameSite: "strict",
+						maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+					});
+
+					// Chuyển hướng về trang chủ với token
+					const redirectUrl = `${process.env.CLIENT_URL || 'http://localhost:3000'}?token=${token}`;
+					logger.info("Redirecting to client", { redirectUrl });
+					return res.redirect(redirectUrl);
+				} catch (loginError) {
+					logger.error("Login error after OAuth authentication", loginError);
+					
+					// Nếu lỗi là "Yêu cầu xác thực bổ sung", chuyển hướng đến trang đăng nhập với thông báo
+					if (loginError.message === "Yêu cầu xác thực bổ sung") {
+						const redirectUrl = `${process.env.CLIENT_URL || 'http://localhost:3000'}/login?message=${encodeURIComponent("Phát hiện đăng nhập bất thường. Vui lòng đăng nhập bằng mật khẩu.")}`;
+						logger.info("Redirecting to login page due to security check", { redirectUrl });
+						return res.redirect(redirectUrl);
+					}
+					
+					return errorResponse(res, loginError.message, 401);
+				}
 			} catch (error) {
+				logger.error("Error processing OAuth user", error);
 				return errorResponse(res, error.message, 401);
 			}
-		})(req, res);
+		})(req, res, next);
 	}
 
-	static async githubAuth(req, res) {
-		passport.authenticate("github", { scope: ["user:email"] })(req, res);
+	static githubAuth(req, res, next) {
+		logger.info("GitHub OAuth authentication initiated");
+		passport.authenticate("github", { scope: ["user:email"] })(req, res, next);
 	}
 
-	static async githubCallback(req, res) {
-		passport.authenticate("github", async (err, user) => {
+	static githubCallback(req, res, next) {
+		logger.info("GitHub OAuth callback received");
+		passport.authenticate("github", async (err, user, info) => {
 			if (err) {
-				return errorResponse(res, "Lỗi xác thực GitHub", 401);
+				logger.error("GitHub OAuth authentication error", err);
+				return errorResponse(res, "Lỗi xác thực GitHub: " + err.message, 401);
 			}
+
+			if (!user) {
+				logger.warn("GitHub OAuth authentication failed - no user", info);
+				return errorResponse(res, "Xác thực GitHub thất bại", 401);
+			}
+
+			logger.success("GitHub OAuth authentication successful", { email: user.email });
 
 			try {
-				const { token, refreshToken } = await AuthService.login(
-					user.email,
-					null,
-					req.headers["user-agent"],
-					req.ip
-				);
+				// Kiểm tra xem user có oauthProviders.github không
+				if (!user.oauthProviders || !user.oauthProviders.github) {
+					logger.info("Updating OAuth provider for user", { userId: user._id });
+					// Cập nhật thông tin OAuth nếu chưa có
+					user = await AuthService.updateOAuthProvider(user, {
+						provider: "github",
+						providerId: user.id, // Hoặc lấy từ profile nếu có
+						avatar: user.avatar
+					});
+				}
 
-				res.cookie("refreshToken", refreshToken, {
-					httpOnly: true,
-					secure: process.env.NODE_ENV === "production",
-					sameSite: "strict",
-					maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-				});
+				logger.info("Logging in user with OAuth", { userId: user._id });
+				try {
+					const { token, refreshToken } = await AuthService.login(
+						user.email,
+						null,
+						req.headers["user-agent"],
+						req.ip
+					);
 
-				return successResponse(
-					res,
-					{ token, user: new UserDTO(user) },
-					"Đăng nhập GitHub thành công"
-				);
+					res.cookie("refreshToken", refreshToken, {
+						httpOnly: true,
+						secure: process.env.NODE_ENV === "production",
+						sameSite: "strict",
+						maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+					});
+
+					// Chuyển hướng về trang chủ với token
+					const redirectUrl = `${process.env.CLIENT_URL || 'http://localhost:3000'}?token=${token}`;
+					logger.info("Redirecting to client", { redirectUrl });
+					return res.redirect(redirectUrl);
+				} catch (loginError) {
+					logger.error("Login error after OAuth authentication", loginError);
+					
+					// Nếu lỗi là "Yêu cầu xác thực bổ sung", chuyển hướng đến trang đăng nhập với thông báo
+					if (loginError.message === "Yêu cầu xác thực bổ sung") {
+						const redirectUrl = `${process.env.CLIENT_URL || 'http://localhost:3000'}/login?message=${encodeURIComponent("Phát hiện đăng nhập bất thường. Vui lòng đăng nhập bằng mật khẩu.")}`;
+						logger.info("Redirecting to login page due to security check", { redirectUrl });
+						return res.redirect(redirectUrl);
+					}
+					
+					return errorResponse(res, loginError.message, 401);
+				}
 			} catch (error) {
+				logger.error("Error processing OAuth user", error);
 				return errorResponse(res, error.message, 401);
 			}
-		})(req, res);
+		})(req, res, next);
 	}
 
 	static async getActiveSessions(req, res) {

@@ -6,6 +6,8 @@ const cors = require("cors");
 const helmet = require("helmet");
 const morgan = require("morgan");
 const cookieParser = require("cookie-parser");
+const passport = require("./config/oauth"); // Import cấu hình Passport
+const session = require("express-session"); // Thêm session middleware
 const { initWebSocket } = require("./config/websocket");
 const { errorHandler } = require("./middlewares/error.middleware");
 
@@ -19,6 +21,23 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(morgan("dev"));
+
+// Session middleware - cần thiết cho Passport
+app.use(
+	session({
+		secret: process.env.SESSION_SECRET || "task-management-secret",
+		resave: false,
+		saveUninitialized: false,
+		cookie: {
+			secure: process.env.NODE_ENV === "production",
+			maxAge: 24 * 60 * 60 * 1000 // 1 day
+		}
+	})
+);
+
+// Khởi tạo Passport
+app.use(passport.initialize());
+app.use(passport.session());
 
 // Helmet configuration
 app.use(

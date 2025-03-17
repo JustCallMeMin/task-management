@@ -133,10 +133,20 @@ class SecurityService {
 			const user = await UserRepository.findById(userId);
 			if (!user) return;
 
-			// Gửi email cảnh báo
+			// Gửi email cảnh báo - tạm thời comment lại vì chưa có hàm sendSecurityAlert
+			// TODO: Implement sendSecurityAlert function
+			/*
 			await sendSecurityAlert({
 				to: user.email,
 				subject: "Cảnh báo bảo mật: Phát hiện hoạt động đăng nhập bất thường",
+				patterns,
+				ipAddress,
+				deviceInfo,
+				timestamp: new Date(),
+			});
+			*/
+			
+			console.log("Security alert for user:", user.email, {
 				patterns,
 				ipAddress,
 				deviceInfo,
