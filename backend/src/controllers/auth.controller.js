@@ -332,7 +332,7 @@ class AuthController {
 					});
 
 					// Chuyển hướng về trang chủ với token
-					const redirectUrl = `${process.env.CLIENT_URL || 'http://localhost:3000'}?token=${token}`;
+					const redirectUrl = `${process.env.CLIENT_URL || 'http://localhost:3000'}/oauth/callback?token=${token}`;
 					logger.info("Redirecting to client", { redirectUrl });
 					return res.redirect(redirectUrl);
 				} catch (loginError) {
@@ -409,7 +409,7 @@ class AuthController {
 					});
 
 					// Chuyển hướng về trang chủ với token
-					const redirectUrl = `${process.env.CLIENT_URL || 'http://localhost:3000'}?token=${token}`;
+					const redirectUrl = `${process.env.CLIENT_URL || 'http://localhost:3000'}/oauth/callback?token=${token}`;
 					logger.info("Redirecting to client", { redirectUrl });
 					return res.redirect(redirectUrl);
 				} catch (loginError) {

@@ -12,7 +12,7 @@ import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { toast } from "react-toastify";
-import AuthService from "../../services/auth.service";
+import { authService } from "../services/auth.service";
 import { QRCodeSVG } from "qrcode.react";
 
 const schema = yup.object().shape({
@@ -40,7 +40,7 @@ const TwoFactorAuth = ({ onSuccess, onCancel }) => {
 		const generate2FA = async () => {
 			try {
 				setLoading(true);
-				const response = await AuthService.generate2FA();
+				const response = await authService.generate2FA();
 				setQrCode(response.qrCode);
 				setSecret(response.secret);
 			} catch (error) {
@@ -56,7 +56,7 @@ const TwoFactorAuth = ({ onSuccess, onCancel }) => {
 	const onSubmit = async (data) => {
 		try {
 			setLoading(true);
-			await AuthService.verify2FA(data.token);
+			await authService.verify2FA(data.token);
 			toast.success("Xác thực 2FA thành công");
 			onSuccess && onSuccess();
 		} catch (error) {

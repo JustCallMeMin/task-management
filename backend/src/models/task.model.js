@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-const { TASK_PRIORITY, TASK_STATUS } = require("../constants/enums.js");
+const { TASK_PRIORITY, TASK_STATUS } = require("../utils/enums");
 const { checkAssignedUser } = require("../middlewares/task.middleware");
 
 const taskSchema = new mongoose.Schema(

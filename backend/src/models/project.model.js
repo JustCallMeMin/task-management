@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-const { PROJECT_STATUS } = require("../constants/enums.js");
+const { PROJECT_STATUS } = require("../utils/enums");
 
 const projectSchema = new mongoose.Schema(
 	{

@@ -2,7 +2,7 @@ const TaskRepository = require("../repositories/task.repository");
 const ProjectRepository = require("../repositories/project.repository");
 const ProjectService = require("./project.service");
 const UserRepository = require("../repositories/user.repository");
-const { TASK_STATUS, PROJECT_STATUS } = require("../../constants/enums");
+const { TASK_STATUS, PROJECT_STATUS } = require("../../utils/enums");
 const TaskDTO = require("../dto/task.dto");
 
 class TaskService {

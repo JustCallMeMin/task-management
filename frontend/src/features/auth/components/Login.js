@@ -12,12 +12,15 @@ import {
 	Paper,
 	CircularProgress,
 	Link,
+	Divider,
 } from "@mui/material";
 import { useAuth } from "../../../contexts/AuthContext";
 import { toast } from "react-toastify";
-import AuthService from "../services/auth.service";
+import { authService } from "../services/auth.service";
 import TwoFactorAuth from "./TwoFactorAuth";
-import { ERROR_MESSAGES, SUCCESS_MESSAGES } from "../../../utils/constants";
+import { ERROR_MESSAGES, SUCCESS_MESSAGES, API_URL } from "../../../shared/utils/constants";
+import GitHubIcon from '@mui/icons-material/GitHub';
+import GoogleIcon from '@mui/icons-material/Google';
 
 const schema = yup.object().shape({
 	email: yup.string().email("Email không hợp lệ").required("Email là bắt buộc"),
@@ -56,7 +59,7 @@ const Login = () => {
 				toast.success("Xác thực bảo mật thành công");
 				navigate("/dashboard");
 			} else {
-				const response = await AuthService.login(data);
+				const response = await authService.login(data);
 
 				if (response.requiresTwoFactor) {
 					setRequiresTwoFactor(true);
@@ -86,6 +89,10 @@ const Login = () => {
 
 	const handle2FACancel = () => {
 		setShow2FA(false);
+	};
+
+	const handleOAuthLogin = (provider) => {
+		window.location.href = `${API_URL}/auth/${provider}`;
 	};
 
 	if (show2FA) {
@@ -172,6 +179,28 @@ const Login = () => {
 							sx={{ mt: 3, mb: 2 }}
 							disabled={loading}>
 							{loading ? <CircularProgress size={24} /> : "Đăng nhập"}
+						</Button>
+						
+						<Divider sx={{ my: 2 }}>hoặc</Divider>
+						
+						<Button
+							fullWidth
+							variant="outlined"
+							startIcon={<GoogleIcon />}
+							onClick={() => handleOAuthLogin('google')}
+							sx={{ mb: 1 }}
+						>
+							Đăng nhập với Google
+						</Button>
+						
+						<Button
+							fullWidth
+							variant="outlined"
+							startIcon={<GitHubIcon />}
+							onClick={() => handleOAuthLogin('github')}
+							sx={{ mb: 2 }}
+						>
+							Đăng nhập với GitHub
 						</Button>
 					</form>
 

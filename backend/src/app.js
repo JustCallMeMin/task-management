@@ -74,7 +74,10 @@ app.use(
 
 // Routes
 const authRoutes = require("./routes/auth.routes");
+const dashboardRoutes = require("./routes/dashboard.routes");
+
 app.use("/api/auth", authRoutes);
+app.use("/api/dashboard", dashboardRoutes);
 
 // Error handler
 app.use(errorHandler);

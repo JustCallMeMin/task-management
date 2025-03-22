@@ -1,6 +1,6 @@
 const GroupRepository = require("../repositories/group.repository");
 const UserRepository = require("../repositories/user.repository");
-const { GROUP_ROLE } = require("../../constants/enums");
+const { GROUP_ROLE } = require("../../utils/enums");
 
 class GroupService {
 	static async getGroups(userId) {

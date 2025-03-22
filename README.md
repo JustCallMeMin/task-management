@@ -1,76 +1,78 @@
-# Task Management System
+# Task Management Dashboard
 
-Hệ thống quản lý công việc với các tính năng bảo mật nâng cao.
+A modern task management dashboard with an intuitive UI for tracking tasks, projects, and team communication.
 
-## Cấu trúc dự án
+## Features
+
+- Task statistics and analytics
+- Task creation and management
+- Project tracking and completion rates
+- Team messaging functionality
+- Schedule management
+- Collaborative task features
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js (version 14 or higher)
+- npm or yarn
+
+### Installation
+
+1. Clone the repository
+   ```
+   git clone https://github.com/yourusername/task-management.git
+   cd task-management
+   ```
+
+2. Install dependencies
+   ```
+   npm install
+   ```
+   or
+   ```
+   yarn install
+   ```
+
+3. Start the development server
+   ```
+   npm start
+   ```
+   or
+   ```
+   yarn start
+   ```
+
+4. Open [http://localhost:3000](http://localhost:3000) to view the application in your browser.
+
+## Project Structure
 
 ```
-task-management/
-├── backend/                 # Backend Node.js
-│   ├── src/                # Source code
-│   ├── config/             # Cấu hình
-│   ├── docs/               # Tài liệu
-│   ├── seeders/            # Dữ liệu mẫu
-│   ├── tests/              # Unit tests
-│   ├── coverage/           # Báo cáo test coverage
-│   ├── .env               # Biến môi trường
-│   ├── package.json       # Dependencies
-│   └── index.js           # Entry point
-│
-└── frontend/               # Frontend React
-    ├── public/            # Static files
-    ├── src/               # Source code
-    │   ├── components/    # React components
-    │   ├── contexts/      # React contexts
-    │   ├── services/      # API services
-    │   ├── utils/         # Utility functions
-    │   └── App.js         # Root component
-    ├── .env              # Biến môi trường
-    └── package.json      # Dependencies
+src/
+├── components/
+│   ├── Dashboard.jsx        # Main dashboard layout
+│   ├── Sidebar.jsx          # Navigation sidebar
+│   ├── StatsCards.jsx       # Task statistics cards
+│   ├── TaskAnalytics.jsx    # Task analytics charts
+│   ├── TaskList.jsx         # Task list component
+│   ├── Schedule.jsx         # Schedule component
+│   ├── Messages.jsx         # Messages component
+│   └── NewTask.jsx          # New task creation form
+├── App.js                   # App component
+└── index.js                 # Application entry point
 ```
 
-## Tính năng
+## Adding SVG Icons and Images
 
-- Xác thực người dùng với JWT
-- Xác thực hai yếu tố (2FA)
-- Phát hiện đăng nhập bất thường
-- Quản lý nhóm và phân quyền
-- Quản lý công việc
-- Giao diện người dùng thân thiện
+For the application to work properly, you'll need to add SVG icons and images to the public folder. You can use any icon library or design your own SVG icons to match the design.
 
-## Cài đặt
+## Technologies Used
 
-### Backend
+- React.js
+- CSS3
+- Modern JavaScript (ES6+)
 
-```bash
-cd backend
-npm install
-npm run dev
-```
+## License
 
-### Frontend
-
-```bash
-cd frontend
-npm install
-npm start
-```
-
-## Công nghệ sử dụng
-
-### Backend
-
-- Node.js
-- Express.js
-- MongoDB
-- JWT
-- Speakeasy (2FA)
-
-### Frontend
-
-- React
-- Material-UI
-- React Router
-- Axios
-- React Hook Form
-- Yup
+This project is licensed under the MIT License.

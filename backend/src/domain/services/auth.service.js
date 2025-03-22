@@ -284,17 +284,34 @@ class AuthService {
 
 			// Kiểm tra xác thực mật khẩu nếu không phải đăng nhập OAuth
 			if (password !== null) {
-				const isPasswordValid = await user.comparePassword(password);
+				// Kiểm tra mật khẩu bằng comparePassword
+				let isPasswordValid = false;
+				try {
+					isPasswordValid = await user.comparePassword(password);
+				} catch (err) {
+					// Nếu có lỗi khi so sánh mật khẩu (ví dụ: không có mật khẩu)
+					isPasswordValid = false;
+				}
+				
 				if (!isPasswordValid) {
-					// Kiểm tra xem tài khoản có được tạo qua OAuth không
-					if (user.oauthProviders && Object.keys(user.oauthProviders).length > 0) {
-						// Nếu tài khoản được tạo qua OAuth, thông báo cho người dùng
-						const providers = Object.keys(user.oauthProviders).map(p => 
-							p.charAt(0).toUpperCase() + p.slice(1)
-						).join(' hoặc ');
-						throw new Error(`Tài khoản này được đăng ký qua ${providers}. Vui lòng sử dụng phương thức đăng nhập tương ứng.`);
+					// Kiểm tra xem tài khoản này CHƯA BAO GIỜ được đặt mật khẩu
+					// và chỉ đăng ký qua OAuth
+					if (!user.password && !user.passwordHash && user.oauthProviders && Object.keys(user.oauthProviders).length > 0) {
+						// Lấy tên nhà cung cấp OAuth thực tế
+						let providerNames = [];
+						if (user.oauthProviders.google) providerNames.push("Google");
+						if (user.oauthProviders.github) providerNames.push("GitHub");
+						if (user.oauthProviders.facebook) providerNames.push("Facebook");
+						
+						// Nếu không có tên nhà cung cấp nào được tìm thấy, sử dụng "OAuth"
+						const providers = providerNames.length > 0 
+							? providerNames.join(" hoặc ") 
+							: "OAuth";
+							
+						throw new Error(`Tài khoản này chỉ được đăng ký qua ${providers}. Vui lòng sử dụng phương thức đăng nhập tương ứng.`);
 					}
 					
+					// Trường hợp mật khẩu sai thông thường
 					// Tăng số lần đăng nhập thất bại
 					user.loginAttempts = (user.loginAttempts || 0) + 1;
 
@@ -687,7 +704,7 @@ class AuthService {
 			// Cập nhật thông tin provider
 			user.oauthProviders[provider] = providerId;
 			
-			// Cập nhật avatar nếu có
+			// Cập nhật avatar nếu có và người dùng chưa có avatar hoặc đang dùng gravatar
 			if (avatar && (!user.avatar || user.avatar.includes('gravatar'))) {
 				user.avatar = avatar;
 			}
@@ -697,6 +714,8 @@ class AuthService {
 				user.isVerified = true;
 				user.verifiedAt = new Date();
 			}
+			
+			// KHÔNG cập nhật/xóa mật khẩu để đảm bảo người dùng vẫn có thể đăng nhập bằng mật khẩu
 			
 			await user.save();
 			return user;

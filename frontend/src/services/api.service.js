@@ -1,60 +1,45 @@
-import http from "./http";
-import { MESSAGES } from "../utils/constants";
+import axios from 'axios';
+import { API_URL } from '../shared/utils/constants';
 
-export class BaseApiService {
-	constructor(endpoint) {
-		this.endpoint = endpoint;
-	}
+const api = axios.create({
+  baseURL: API_URL,
+  headers: {
+    'Content-Type': 'application/json'
+  }
+});
 
-	async get(path = "", params = {}) {
-		try {
-			const response = await http.get(`${this.endpoint}${path}`, { params });
-			return response.data;
-		} catch (error) {
-			this.handleError(error);
-		}
-	}
+// Request interceptor
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
 
-	async post(path = "", data = {}) {
-		try {
-			const response = await http.post(`${this.endpoint}${path}`, data);
-			return response.data;
-		} catch (error) {
-			this.handleError(error);
-		}
-	}
+// Response interceptor
+api.interceptors.response.use(
+  (response) => response.data,
+  (error) => {
+    if (error.response) {
+      // Handle specific error cases
+      switch (error.response.status) {
+        case 401:
+        case 403:
+          localStorage.removeItem('token');
+          window.location.href = '/login';
+          break;
+        default:
+          break;
+      }
+    }
+    return Promise.reject(error);
+  }
+);
 
-	async put(path = "", data = {}) {
-		try {
-			const response = await http.put(`${this.endpoint}${path}`, data);
-			return response.data;
-		} catch (error) {
-			this.handleError(error);
-		}
-	}
-
-	async delete(path = "") {
-		try {
-			const response = await http.delete(`${this.endpoint}${path}`);
-			return response.data;
-		} catch (error) {
-			this.handleError(error);
-		}
-	}
-
-	handleError(error) {
-		if (!error.response) {
-			throw new Error(MESSAGES.ERROR.NETWORK);
-		}
-
-		const { status } = error.response;
-		switch (status) {
-			case 401:
-				throw new Error(MESSAGES.ERROR.UNAUTHORIZED);
-			case 404:
-				throw new Error("Resource not found");
-			default:
-				throw new Error(MESSAGES.ERROR.SERVER);
-		}
-	}
-}
+export default api; 

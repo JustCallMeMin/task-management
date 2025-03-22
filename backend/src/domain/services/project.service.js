@@ -2,9 +2,9 @@ const ProjectRepository = require("../repositories/project.repository");
 const UserRepository = require("../repositories/user.repository");
 const ProjectUser = require("../../models/project_user.model");
 const Task = require("../../models/task.model");
-const { PROJECT_STATUS, TASK_STATUS } = require("../../constants/enums");
+const { PROJECT_STATUS, TASK_STATUS } = require("../../utils/enums");
 const ProjectDTO = require("../dto/project.dto");
-const { PROJECT_ROLE } = require("../../constants/enums");
+const { PROJECT_ROLE } = require("../../utils/enums");
 
 class ProjectService {
 	// 1️⃣ Tạo Personal Project

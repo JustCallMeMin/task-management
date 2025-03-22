@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-const { PROJECT_ROLE } = require("../constants/enums.js");
+const { PROJECT_ROLE } = require("../utils/enums");
 
 const projectUserSchema = new mongoose.Schema({
     projectId: { type: mongoose.Schema.Types.ObjectId, ref: "Project", required: true },

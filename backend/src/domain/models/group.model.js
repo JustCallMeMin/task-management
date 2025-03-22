@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-const { GROUP_ROLE } = require("../../constants/enums");
+const { GROUP_ROLE } = require("../../utils/enums");
 
 const groupSchema = new mongoose.Schema(
 	{
